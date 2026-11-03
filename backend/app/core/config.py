@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://medi-voice-liart.vercel.app",
     ]
 
     # Discrete PostgreSQL connection fields
@@ -59,8 +60,25 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: Union[List[str], str]) -> List[str]:
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+            raw_origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        else:
+            raw_origins = list(v)
+
+        clean_origins: List[str] = []
+        for origin in raw_origins:
+            origin_str = str(origin).strip()
+            # Remove wrapping quotes if present
+            if (origin_str.startswith('"') and origin_str.endswith('"')) or (
+                origin_str.startswith("'") and origin_str.endswith("'")
+            ):
+                origin_str = origin_str[1:-1].strip()
+            # Normalize trailing slash: browsers send Origin headers without trailing slash
+            if origin_str.endswith("/") and origin_str not in ("/", "http://", "https://"):
+                origin_str = origin_str.rstrip("/")
+            if origin_str and origin_str not in clean_origins:
+                clean_origins.append(origin_str)
+
+        return clean_origins
 
     @model_validator(mode="after")
     def assemble_database_url(self) -> "Settings":

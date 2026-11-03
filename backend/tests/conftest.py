@@ -25,7 +25,12 @@ def test_settings() -> Settings:
         VERSION="0.1.0-test",
         ENVIRONMENT="test",
         DEBUG=True,
-        ALLOWED_ORIGINS=["http://localhost:5173", "http://testserver"],
+        ALLOWED_ORIGINS=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://medi-voice-liart.vercel.app",
+            "http://testserver",
+        ],
         DATABASE_URL="sqlite:///:memory:",
         DATABASE_CONNECT_TIMEOUT=2,
     )

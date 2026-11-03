@@ -89,6 +89,45 @@ def test_cors_headers_allowed_origin(client: TestClient) -> None:
     assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
 
 
+def test_cors_headers_deployed_vercel_origin(client: TestClient) -> None:
+    """Test that requests from the deployed Vercel frontend origin are properly allowed."""
+    response = client.get(
+        "/api/health",
+        headers={"Origin": "https://medi-voice-liart.vercel.app"},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "https://medi-voice-liart.vercel.app"
+    assert response.headers.get("access-control-allow-credentials") == "true"
+
+
+def test_cors_preflight_options_request(client: TestClient) -> None:
+    """Test that OPTIONS preflight requests for API routes are handled correctly."""
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": "https://medi-voice-liart.vercel.app",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "Content-Type, Authorization",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "https://medi-voice-liart.vercel.app"
+    allow_methods = response.headers.get("access-control-allow-methods", "")
+    for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]:
+        assert method in allow_methods
+    assert response.headers.get("access-control-allow-credentials") == "true"
+
+
+def test_cors_disallowed_origin_rejected(client: TestClient) -> None:
+    """Test that unauthorized origins do not receive CORS allow headers."""
+    response = client.get(
+        "/api/health",
+        headers={"Origin": "https://unauthorized-domain.com"},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") is None
+
+
 def test_unhandled_exception_returns_safe_500(client: TestClient) -> None:
     """Test that unexpected server exceptions return a safe 500 error without leaking stack traces."""
     # We can test accessing a path that triggers an unhandled error or verify 404/500 formatting
